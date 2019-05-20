@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Image, ImageBackground, Platform, StyleSheet, TouchableOpacity, View, ViewPropTypes } from 'react-native';
+import { Image, ImageBackground, Platform, StyleSheet, TouchableOpacity, View, ViewPropTypes, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video'; // eslint-disable-line
 
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
   },
   controls: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.0)',
     height: 48,
     marginTop: -48,
     flexDirection: 'row',
@@ -43,6 +43,24 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   extraControl: {
+    color: 'white',
+    padding: 8,
+  },
+  muteButton: {
+    position: 'absolute',
+    left: 10,
+    bottom: 10,
+    borderRadius: 100,
+    backgroundColor: '#000'
+  },
+  durationButton: {
+    position: 'absolute',
+    right: 10,
+    bottom: 15,
+    borderRadius: 25,
+    backgroundColor: '#000'
+  },
+  durationText: {
     color: 'white',
     padding: 8,
   },
@@ -219,7 +237,6 @@ export default class VideoPlayer extends Component {
       isMuted,
     });
     this.showControls();
-    
   }
 
   onToggleFullScreen() {
@@ -305,6 +322,22 @@ export default class VideoPlayer extends Component {
     this.controlsTimeout = setTimeout(() => {
       this.setState({ isControlsVisible: false });
     }, this.props.controlsTimeout);
+  }
+
+
+  secondsToMinutes(time) {
+    var seconds=0, minutes=0, hours=0;
+    var ss, sm, sh;
+
+    hours = Math.floor(time / 3600);
+    minutes = Math.floor((time - (hours * 3600))/60);
+    seconds = Math.floor(time - (hours * 3600) - (minutes * 60))
+
+    sh = hours != 0 ? hours.toString() + ':' : '';
+    sm = minutes.toString().length == 1 ? ('0' + minutes.toString()) : minutes.toString();
+    ss = seconds.toString().length == 1 ? ('0' + seconds.toString()) : seconds.toString();
+
+    return sh + sm + ':' + ss;
   }
 
   showControls() {
@@ -424,19 +457,13 @@ export default class VideoPlayer extends Component {
     const { customStyles } = this.props;
     return (
       <View style={[styles.controls, customStyles.controls]}>
-        <TouchableOpacity
-          onPress={this.onPlayPress}
-          style={[customStyles.controlButton, customStyles.playControl]}
-        >
-          <Icon
-            style={[styles.playControl, customStyles.controlIcon, customStyles.playIcon]}
-            name={this.state.isPlaying ? 'pause' : 'play-arrow'}
-            size={32}
-          />
-        </TouchableOpacity>
-        {this.renderSeekBar()}
+        {this.state.duration ?
+          (<View style={styles.durationButton}>
+            <Text style={styles.durationText}>{this.secondsToMinutes(this.state.duration)}</Text>
+          </View>)
+          : null }
         {this.props.muted ? null : (
-          <TouchableOpacity onPress={this.onMutePress} style={customStyles.controlButton}>
+          <TouchableOpacity style={[styles.muteButton, customStyles.muteButton]}>
             <Icon
               style={[styles.extraControl, customStyles.controlIcon]}
               name={this.state.isMuted ? 'volume-off' : 'volume-up'}
@@ -500,6 +527,7 @@ export default class VideoPlayer extends Component {
               this.showControls();
               if (pauseOnPress)
                 this.onPlayPress();
+              this.setState({isMuted: !this.state.isMuted});
             }}
             onLongPress={() => {
               if (fullScreenOnLongPress && Platform.OS !== 'android')
