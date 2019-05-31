@@ -33,10 +33,9 @@ const styles = StyleSheet.create({
   },
   controls: {
     backgroundColor: 'rgba(0, 0, 0, 0.0)',
-    height: 48,
-    marginTop: -48,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   playControl: {
     color: 'white',
@@ -51,7 +50,7 @@ const styles = StyleSheet.create({
     left: 10,
     bottom: 10,
     borderRadius: 100,
-    backgroundColor: '#000'
+    backgroundColor: 'rgba(0, 0, 0, 0.6)'
   },
   durationButton: {
     position: 'absolute',
@@ -63,6 +62,7 @@ const styles = StyleSheet.create({
   durationText: {
     color: 'white',
     padding: 8,
+    fontSize: 14,
   },
   seekBar: {
     alignItems: 'center',
@@ -117,6 +117,7 @@ export default class VideoPlayer extends Component {
       isControlsVisible: !props.hideControlsOnStart,
       duration: 0,
       isSeeking: false,
+      wasPaused: props.paused,
     };
 
     this.seekBarWidth = 200;
@@ -142,6 +143,13 @@ export default class VideoPlayer extends Component {
   componentDidMount() {
     if (this.props.autoplay) {
       this.hideControls();
+    }
+  }
+
+  componentDidUpdate() {
+    if(this.state.wasPaused != this.props.paused) {
+      this.setState({ wasPaused: this.props.paused})
+      this.showControls();
     }
   }
 
@@ -383,9 +391,8 @@ export default class VideoPlayer extends Component {
     return (
       <TouchableOpacity
         style={[styles.playButton, customStyles.playButton]}
-        onPress={this.onStartPress}
-      >
-        <Icon style={[styles.playArrow, customStyles.playArrow]} name="play-arrow" size={42} />
+        onPress={() => {if(this.state.isPlaying) {this.onPlayPress()} else {this.onStartPress()}}}>
+        <Icon style={[styles.playArrow, customStyles.playArrow]} name={!this.state.isPlaying ? "play-arrow" : "pause"} size={42} />
       </TouchableOpacity>
     );
   }
@@ -403,7 +410,7 @@ export default class VideoPlayer extends Component {
         ]}
         source={thumbnail}
       >
-        {this.renderStartButton()}
+      {this.renderControls()}
       </BackgroundImage>
     );
   }
@@ -456,27 +463,18 @@ export default class VideoPlayer extends Component {
   renderControls() {
     const { customStyles } = this.props;
     return (
-      <View style={[styles.controls, customStyles.controls]}>
+      <View style={[styles.controls, customStyles.controls, {position: 'absolute', height: this.props.videoHeight, width: this.props.videoWidth}]}>
         {this.state.duration ?
           (<View style={styles.durationButton}>
             <Text style={styles.durationText}>{this.secondsToMinutes(this.state.duration)}</Text>
           </View>)
           : null }
+        {!this.props.autoplay ? this.renderStartButton() : null}
         {this.props.muted ? null : (
-          <TouchableOpacity style={[styles.muteButton, customStyles.muteButton]}>
-            <Icon
-              style={[styles.extraControl, customStyles.controlIcon]}
-              name={this.state.isMuted ? 'volume-off' : 'volume-up'}
-              size={24}
-            />
-          </TouchableOpacity>
-        )}
-        {(Platform.OS === 'android' || this.props.disableFullscreen) ? null : (
-          <TouchableOpacity onPress={this.onToggleFullScreen} style={customStyles.controlButton}>
-            <Icon
-              style={[styles.extraControl, customStyles.controlIcon]}
-              name="fullscreen"
-              size={32}
+          <TouchableOpacity onPress={() => this.onMutePress()} style={[styles.muteButton, customStyles.muteButton]}>
+            <Icon style={[styles.extraControl, customStyles.controlIcon]}
+                  name={this.state.isMuted ? 'volume-off' : 'volume-up'}
+                  size={21}
             />
           </TouchableOpacity>
         )}
@@ -494,6 +492,7 @@ export default class VideoPlayer extends Component {
       customStyles,
       ...props
     } = this.props;
+
     return (
       <View style={customStyles.videoWrapper}>
         <Video
@@ -527,8 +526,9 @@ export default class VideoPlayer extends Component {
               this.showControls();
               if (pauseOnPress)
                 this.onPlayPress();
-              this.setState({isMuted: !this.state.isMuted});
+              if(this.props.autoplay) {this.onMutePress()}
             }}
+
             onLongPress={() => {
               if (fullScreenOnLongPress && Platform.OS !== 'android')
                 this.onToggleFullScreen();
