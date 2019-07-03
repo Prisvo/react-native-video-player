@@ -116,6 +116,7 @@ export default class VideoPlayer extends Component {
       isMuted: props.defaultMuted,
       isControlsVisible: !props.hideControlsOnStart,
       duration: 0,
+      currentTime: null,
       isSeeking: false,
       wasPaused: props.paused,
     };
@@ -127,7 +128,6 @@ export default class VideoPlayer extends Component {
 
     this.onLayout = this.onLayout.bind(this);
     this.onStartPress = this.onStartPress.bind(this);
-    this.onProgress = this.onProgress.bind(this);
     this.onEnd = this.onEnd.bind(this);
     this.onLoad = this.onLoad.bind(this);
     this.onPlayPress = this.onPlayPress.bind(this);
@@ -183,14 +183,18 @@ export default class VideoPlayer extends Component {
   }
 
   onProgress(event) {
+
     if (this.state.isSeeking) {
       return;
     }
+
     if (this.props.onProgress) {
       this.props.onProgress(event);
     }
+
     this.setState({
       progress: event.currentTime / (this.props.duration || this.state.duration),
+      currentTime: event.currentTime,
     });
   }
 
@@ -222,7 +226,7 @@ export default class VideoPlayer extends Component {
     }
 
     const { duration } = event;
-    this.setState({ duration });
+    this.setState({ currentTime: 0,  duration: duration });
   }
 
   onPlayPress() {
@@ -416,7 +420,7 @@ export default class VideoPlayer extends Component {
   }
 
   renderSeekBar(fullWidth) {
-    const { customStyles, disableSeek } = this.props;
+    const { customStyles, disableSeek, repeat } = this.props;
     return (
       <View
         style={[
@@ -464,9 +468,9 @@ export default class VideoPlayer extends Component {
     const { customStyles } = this.props;
     return (
       <View style={[styles.controls, customStyles.controls, {position: 'absolute', height: this.props.videoHeight, width: this.props.videoWidth}]}>
-        {this.state.duration ?
+        {this.state.duration && this.state.currentTime ?
           (<View style={styles.durationButton}>
-            <Text style={styles.durationText}>{this.secondsToMinutes(this.state.duration)}</Text>
+            <Text style={styles.durationText}>{this.secondsToMinutes(this.state.duration - this.state.currentTime)}</Text>
           </View>)
           : null }
         {!this.props.autoplay ? this.renderStartButton() : null}
@@ -488,6 +492,7 @@ export default class VideoPlayer extends Component {
       style,
       resizeMode,
       pauseOnPress,
+      loop,
       fullScreenOnLongPress,
       customStyles,
       ...props
@@ -508,8 +513,9 @@ export default class VideoPlayer extends Component {
           paused={this.props.paused
             ? this.props.paused || !this.state.isPlaying
             : !this.state.isPlaying}
-          onProgress={this.onProgress}
+          onProgress={event => this.onProgress(event)}
           onEnd={this.onEnd}
+          repeat={loop}
           onLoad={this.onLoad}
           source={video}
           resizeMode={resizeMode}
@@ -526,7 +532,6 @@ export default class VideoPlayer extends Component {
               this.showControls();
               if (pauseOnPress)
                 this.onPlayPress();
-              if(this.props.autoplay) {this.onMutePress()}
             }}
 
             onLongPress={() => {
@@ -547,8 +552,7 @@ export default class VideoPlayer extends Component {
 
     if (hasEnded && endThumbnail) {
       return this.renderThumbnail(endThumbnail);
-    }
-    else if (!isStarted && thumbnail) {
+    } else if (!isStarted && thumbnail) {
       return this.renderThumbnail(thumbnail);
     } else if (!isStarted) {
       return (
@@ -561,9 +565,26 @@ export default class VideoPlayer extends Component {
   }
 
   render() {
+    const {paused, thumbnail, style, customStyles, ...props} = this.props;
+
     return (
       <View onLayout={this.onLayout} style={this.props.customStyles.wrapper}>
         {this.renderContent()}
+        <View style={{position: 'absolute'}}>
+          { paused ?
+            <BackgroundImage
+              {...props}
+              style={[
+                styles.thumbnail,
+                this.getSizeStyles(),
+                style,
+                customStyles.thumbnail,
+              ]}
+              source={thumbnail}
+            >
+            </BackgroundImage>
+          : null}
+        </View>
       </View>
     );
   }
