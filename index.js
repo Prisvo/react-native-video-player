@@ -412,9 +412,8 @@ export default class VideoPlayer extends Component {
           style,
           customStyles.thumbnail,
         ]}
-        source={thumbnail}
-      >
-      {this.renderControls()}
+        source={thumbnail}>
+      { this.props.topicControl ? this.renderStartButton()  : this.renderControls()}
       </BackgroundImage>
     );
   }
@@ -569,9 +568,7 @@ export default class VideoPlayer extends Component {
 
     return (
       <View onLayout={this.onLayout} style={this.props.customStyles.wrapper}>
-        {this.renderContent()}
         <View style={{position: 'absolute'}}>
-          { paused ?
             <BackgroundImage
               {...props}
               style={[
@@ -580,11 +577,10 @@ export default class VideoPlayer extends Component {
                 style,
                 customStyles.thumbnail,
               ]}
-              source={thumbnail}
-            >
+              source={thumbnail}>
             </BackgroundImage>
-          : null}
         </View>
+        {this.renderContent()}
       </View>
     );
   }
